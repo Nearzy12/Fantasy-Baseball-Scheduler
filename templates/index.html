@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Algorithm Website</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Enter a number to square:</h1>
+    <input type="text" id="inputValue" />
+    <button onclick="sendData()">Submit</button>
+
+    <h3>Result: <span id="result"></span></h3>
+
+    <script>
+        function sendData() {
+            console.log("sendData function called");  // Debugging line
+            const inputValue = document.getElementById('inputValue').value;
+            console.log("Input value:", inputValue);  // Check if this value is being captured
+
+            // Send the input value to the backend (Flask) via an AJAX request
+            $.ajax({
+                url: 'http://127.0.0.1:5000/process',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ inputValue: inputValue }),
+                success: function(response) {
+                    // Display the result from Python's algorithm
+                    document.getElementById('result').innerText = response.result;
+                },
+                error: function(error) {
+                    console.error('Error:', error);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
