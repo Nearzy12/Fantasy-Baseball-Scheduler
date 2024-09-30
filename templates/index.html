@@ -3,36 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Algorithm Website</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Sports Schedule Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        label, input, button {
+            display: block;
+            margin-bottom: 10px;
+        }
+        input, button {
+            padding: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #schedule {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .team-list {
+            margin: 20px 0;
+        }
+        .team-item {
+            margin: 5px 0;
+        }
+        .remove-btn {
+            margin-left: 10px;
+            color: red;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Enter a number to square:</h1>
-    <input type="text" id="inputValue" />
-    <button onclick="sendData()">Submit</button>
 
-    <h3>Result: <span id="result"></span></h3>
+    <!-- Section to display team names -->
+    <div class="team-list">
+        <h3>Teams</h3>
+        <ul id="teamList">
+            <!-- Team names will be dynamically added here -->
+        </ul>
+    </div>
+
+    <!-- Section to add a new team -->
+    <div>
+        <input type="text" id="newTeam" placeholder="Enter team name">
+        <button onclick="addTeam()">Add Team</button>
+    </div>
 
     <script>
-        function sendData() {
-            console.log("sendData function called");  // Debugging line
-            const inputValue = document.getElementById('inputValue').value;
-            console.log("Input value:", inputValue);  // Check if this value is being captured
+        // Initial list of team names
+        let teams = [];
 
-            // Send the input value to the backend (Flask) via an AJAX request
-            $.ajax({
-                url: 'http://127.0.0.1:5000/process',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ inputValue: inputValue }),
-                success: function(response) {
-                    // Display the result from Python's algorithm
-                    document.getElementById('result').innerText = response.result;
-                },
-                error: function(error) {
-                    console.error('Error:', error);
-                }
+        // Function to display the list of teams
+        function displayTeams() {
+            const teamList = document.getElementById('teamList');
+            teamList.innerHTML = ''; // Clear the list before re-adding
+
+            teams.forEach((team, index) => {
+                let li = document.createElement('li');
+                li.className = 'team-item';
+                li.textContent = team;
+
+                // Create remove button for each team
+                let removeBtn = document.createElement('span');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '[Remove]';
+                removeBtn.onclick = () => removeTeam(index);
+
+                li.appendChild(removeBtn);
+                teamList.appendChild(li);
             });
+        }
+
+        // Function to add a new team
+        function addTeam() {
+            const newTeamName = document.getElementById('newTeam').value.trim();
+            
+            if (newTeamName !== '') {
+                teams.push(newTeamName);
+                document.getElementById('newTeam').value = ''; // Clear input field
+                displayTeams(); // Refresh the team list
+
+                // Convert the numTeams value to a number, increment, and update the value
+                let numTeamsElement = document.getElementById('numTeams');
+                let numTeams = parseInt(numTeamsElement.value, 10) || 0; // Ensure it's a number, default to 0 if empty
+                numTeamsElement.value = numTeams + 1; // Increment by 1
+            }
+        }
+
+        // Function to remove a team by index
+        function removeTeam(index) {
+            teams.splice(index, 1); // Remove the team at the given index
+            displayTeams(); // Refresh the team list
+            // Convert the numTeams value to a number, decrement, and update the value
+            let numTeamsElement = document.getElementById('numTeams');
+            let numTeams = parseInt(numTeamsElement.value, 10) || 0; // Ensure it's a number, default to 0 if empty
+            numTeamsElement.value = numTeams - 1; // decrement by 1
+        }
+
+        // Display teams on initial load
+        displayTeams();
+    </script>
+
+    <div class="container">
+        <h1>Sports Schedule Generator</h1>
+        <form id="scheduleForm">
+            <label for="numTeams">Number of Teams:</label>
+            <input type="number" id="numTeams" required min="2">
+            
+            <label for="gamesPerTeam">Number of total games each team will play:</label>
+            <input type="number" id="gamesPerTeam" required min="1">
+            
+            <button type="submit">Generate Schedule</button>
+        </form>
+        
+        <div id="schedule"></div>
+    </div>
+
+    <script>
+        document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const numTeams = parseInt(document.getElementById('numTeams').value);
+            const gamesPerTeam = parseInt(document.getElementById('gamesPerTeam').value);
+            generateSchedule(numTeams, gamesPerTeam);
+        });
+
+        async function generateSchedule(numTeams, gamesPerTeam) {
+            const response = await fetch('http://localhost:5000/generate_schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ numTeams, gamesPerTeam }),
+            });
+
+            const data = await response.json();
+            displaySchedule(data.schedule, numTeams, gamesPerTeam);
+        }
+
+        function displaySchedule(schedule, numTeams, gamesPerTeam) {
+            const scheduleElement = document.getElementById('schedule');
+            scheduleElement.innerHTML = '';
+
+            const table = document.createElement('table');
+            const headerRow = table.insertRow();
+            headerRow.insertCell().textContent = 'TEAM NAME';
+            for (let i = 1; i <= schedule[1].length; i++) {
+                headerRow.insertCell().textContent = `GAME ${i}`;
+            }
+
+            for (let i = 1; i <= numTeams; i++) {
+                const row = table.insertRow();
+                row.insertCell().textContent = `TEAM ${i}`;
+                for (let j = 0; j < schedule[i].length; j++) {
+                    row.insertCell().textContent = schedule[i][j] || '';
+                }
+            }
+
+            scheduleElement.appendChild(table);
         }
     </script>
 </body>
